@@ -1,0 +1,150 @@
+[manifest]
+version = '1.0.0'
+dump_lua = true
+priority = 1
+
+[[patches]]
+[patches.module]
+source = 'localization/de.lua'
+before = 'main.lua'
+name = 'quickhand.locale.de'
+
+[[patches]]
+[patches.module]
+source = 'localization/en-us.lua'
+before = 'main.lua'
+name = 'quickhand.locale.en-us'
+
+[[patches]]
+[patches.module]
+source = 'localization/es_419.lua'
+before = 'main.lua'
+name = 'quickhand.locale.es_419'
+
+[[patches]]
+[patches.module]
+source = 'localization/es_ES.lua'
+before = 'main.lua'
+name = 'quickhand.locale.es_es'
+
+[[patches]]
+[patches.module]
+source = 'localization/fr.lua'
+before = 'main.lua'
+name = 'quickhand.locale.fr'
+
+[[patches]]
+[patches.module]
+source = 'localization/id.lua'
+before = 'main.lua'
+name = 'quickhand.locale.id'
+
+[[patches]]
+[patches.module]
+source = 'localization/it.lua'
+before = 'main.lua'
+name = 'quickhand.locale.it'
+
+[[patches]]
+[patches.module]
+source = 'localization/ja.lua'
+before = 'main.lua'
+name = 'quickhand.locale.ja'
+
+[[patches]]
+[patches.module]
+source = 'localization/ko.lua'
+before = 'main.lua'
+name = 'quickhand.locale.ko'
+
+[[patches]]
+[patches.module]
+source = 'localization/nl.lua'
+before = 'main.lua'
+name = 'quickhand.locale.nl'
+
+[[patches]]
+[patches.module]
+source = 'localization/pl.lua'
+before = 'main.lua'
+name = 'quickhand.locale.pl'
+
+[[patches]]
+[patches.module]
+source = 'localization/pt_BR.lua'
+before = 'main.lua'
+name = 'quickhand.locale.pt_br'
+
+[[patches]]
+[patches.module]
+source = 'localization/ru.lua'
+before = 'main.lua'
+name = 'quickhand.locale.ru'
+
+[[patches]]
+[patches.module]
+source = 'localization/zh_CN.lua'
+before = 'main.lua'
+name = 'quickhand.locale.zh_cn'
+
+[[patches]]
+[patches.module]
+source = 'localization/zh_TW.lua'
+before = 'main.lua'
+name = 'quickhand.locale.zh_tw'
+
+[[patches]]
+[patches.module]
+source = 'src/logger.lua'
+before = 'main.lua'
+name = 'quickhand.logger'
+
+[[patches]]
+[patches.module]
+source = 'src/locale.lua'
+before = 'main.lua'
+name = 'quickhand.locale'
+
+[[patches]]
+[patches.module]
+source = 'src/config.lua'
+before = 'main.lua'
+name = 'quickhand.config'
+
+[[patches]]
+[patches.module]
+source = 'src/draggable_container.lua'
+before = 'main.lua'
+name = 'quickhand.draggablecontainer'
+
+[[patches]]
+[patches.module]
+source = 'src/hands.lua'
+before = 'main.lua'
+name = 'quickhand.hands'
+
+[[patches]]
+[patches.module]
+source = 'src/ui.lua'
+before = 'main.lua'
+name = 'quickhand.ui'
+
+[[patches]]
+[patches.module]
+source = 'src/settings_ui.lua'
+before = 'main.lua'
+name = 'quickhand.settings_ui'
+
+[[patches]]
+[patches.module]
+source = 'src/core.lua'
+before = 'main.lua'
+name = 'quickhand.core'
+
+[[patches]]
+[patches.copy]
+target = 'main.lua'
+position = 'append'
+sources = [
+    'src/init.lua'
+]
