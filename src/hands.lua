@@ -2,6 +2,68 @@ local hands = {}
 
 local config = require('quickhand.config')
 
+local DEBUG_HANDS = false
+
+local function debug_log(message)
+	if not DEBUG_HANDS then return end
+
+	local text = '[QuickHand debug] ' .. tostring(message)
+	if sendInfoMessage then
+		sendInfoMessage(text, 'QuickHand')
+	else
+		print(text)
+	end
+end
+
+debug_log('hands.lua loaded')
+
+local function describe_card(card)
+	local base = card.base or {}
+	local ability = card.ability or {}
+	local center = card.config and card.config.center
+	return table.concat({
+		'ID=' .. tostring(card.ID),
+						'base.id=' .. tostring(base.id),
+						'base.value=' .. tostring(base.value),
+						'base.suit=' .. tostring(base.suit),
+						'effect=' .. tostring(ability.effect),
+						'center=' .. tostring(center and center.key),
+						'facing=' .. tostring(card.facing),
+	}, ' ')
+end
+
+local function describe_cards(cards)
+	local parts = {}
+	for i, card in ipairs(cards or {}) do
+		parts[i] = describe_card(card)
+	end
+	return table.concat(parts, ' | ')
+end
+
+local function debug_evaluate(label, cards)
+	local evaluated = evaluate_poker_hand(cards)
+	local lines = {}
+
+	for _, key in ipairs(hands.ORDER) do
+	local matches = evaluated[key]
+	if matches and next(matches) then
+		for i, combo in ipairs(matches) do
+			lines[#lines + 1] =
+			label .. ' ' .. key .. '[' .. i .. ']: '
+			.. describe_cards(combo)
+		end
+	end
+	end
+
+	if #lines == 0 then
+				debug_log(label .. ': no poker hands found')
+	else
+		for _, line in ipairs(lines) do
+			debug_log(line)
+		end
+	end
+end
+
 -- Static hand-rank order, best first. This is deliberately the *base* ranking and
 -- nothing else: no hand levels, no chips/mult, no joker scoring. The mod exists to
 -- save clicks, not to work out the best play for you -- that's the actual game.
@@ -275,60 +337,76 @@ end
 --- first.
 --- @return table entries, boolean all_hidden
 function hands.available()
-	local visible = face_up_cards()
-	if #visible == 0 then
-		-- Distinguish "nothing readable" from "no hand": the UI shows a placeholder
-		-- rather than an empty window, so the player still knows the mod is alive.
-		local has_cards = G.hand and G.hand.cards and #G.hand.cards > 0
-		return {}, has_cards and true or false
+local visible = face_up_cards()
+
+debug_log('whole-hand input: ' .. describe_cards(visible))
+
+if #visible == 0 then
+	local has_cards = G.hand and G.hand.cards and #G.hand.cards > 0
+	debug_log('whole-hand: no visible cards')
+	return {}, has_cards and true or false
 	end
 
-	-- Whole-hand pass first: get_X_same has no size limit and already returns *every*
-	-- match, highest rank first -- so with two pairs on the table both are captured
-	-- here in the order the buttons will cycle through them.
 	local evaluated = evaluate_poker_hand(visible)
+	debug_evaluate('whole-hand result', visible)
+
 	local found = {}
 	for _, key in ipairs(hands.ORDER) do
-		local matches = evaluated[key]
-		if next(matches) then
-			-- Copy the outer list, not the card lists inside it. evaluate_poker_hand
-			-- hands the *same* table to more than one key (parts._5 backs both
-			-- "Flush Five" and "Five of a Kind"), and find_subset_hands appends to these
-			-- lists -- without the copy an append to one key would corrupt the other.
-			local combinations = {}
-			for i, cards in ipairs(matches) do
-				combinations[i] = trim_to_size(key, cards)
-			end
-			found[key] = combinations
-		end
-	end
+		-- These keys require five-card subset evaluation for oversized hands.
+		local subset_only = false
+		for _, subset_key in ipairs(SUBSET_ONLY) do
+			if key == subset_key then
+				subset_only = true
+				break
+				end
+				end
 
-	find_subset_hands(visible, found)
+				if not subset_only then
+					local matches = evaluated[key]
+					if matches and next(matches) then
+						local combinations = {}
+						for i, cards in ipairs(matches) do
+							combinations[i] = trim_to_size(key, cards)
+							end
+							found[key] = combinations
+							end
+							end
+							end
 
-	-- High Card is a single card, and get_highest only ever names the best one -- so
-	-- unlike every other button it had nothing to cycle through. Offer one combination
-	-- per readable card, best first, so repeated presses walk down the ranks.
-	if found['High Card'] then
-		local combinations = {}
-		for i, card in ipairs(order_cards(visible, true)) do
-			combinations[i] = { card }
-		end
-		found['High Card'] = combinations
-	end
+				find_subset_hands(visible, found)
 
-	local result = {}
-	for _, key in ipairs(hands.ORDER) do
-		if found[key] and #found[key] > 0 then
-			result[#result + 1] = {
-				key = key,
-				label = localize(key, 'poker_hands'),
-				combinations = found[key],
-			}
-		end
-	end
+				if found['High Card'] then
+					local combinations = {}
+					for i, card in ipairs(order_cards(visible, true)) do
+						combinations[i] = { card }
+						end
+						found['High Card'] = combinations
+						end
 
-	return result, false
-end
+						local result = {}
+						for _, key in ipairs(hands.ORDER) do
+							if found[key] and #found[key] > 0 then
+								result[#result + 1] = {
+									key = key,
+									label = localize(key, 'poker_hands'),
+									combinations = found[key],
+								}
+								end
+								end
+
+								debug_log('available hands: ' .. table.concat(
+									(function()
+									local names = {}
+									for i, entry in ipairs(result) do
+										names[i] = entry.key
+										end
+										return names
+										end)(),
+																			  ', '
+								))
+
+								return result, false
+								end
 
 -- Cheap, allocation-free change detection. Card.ID is unique per instance, so any
 -- draw, discard or transformation moves the sum; reordering does not, which is
@@ -425,43 +503,49 @@ end
 --- same result as pressing this button and then Invert, in one action. It still walks
 --- the cycle, so repeated presses invert each alternative combination in turn.
 function hands.select(entry, inverse)
-	local combinations = entry and entry.combinations
-	if not combinations or #combinations == 0 then return end
+local combinations = entry and entry.combinations
+if not combinations or #combinations == 0 then return end
 
 	-- Picking a hand is a fresh start; the previous keep/invert intent no longer applies.
 	hands.forget_kept()
 
 	if cycle_key == entry.key then
 		cycle_index = cycle_index % #combinations + 1
-	else
-		cycle_key = entry.key
-		cycle_index = 1
-	end
-
-	local chosen = combinations[cycle_index]
-
-	if inverse then
-		local in_hand = {}
-		for _, card in ipairs(chosen) do
-			in_hand[card] = true
-		end
-
-		local rest = {}
-		for _, card in ipairs(G.hand.cards) do
-			if not in_hand[card] then
-				rest[#rest + 1] = card
+		else
+			cycle_key = entry.key
+			cycle_index = 1
 			end
-		end
 
-		if #rest == 0 then return end
-		select_cards(order_cards(rest, false))
-	else
-		select_cards(chosen)
-	end
+			local chosen = combinations[cycle_index]
 
-	play_sound('cardSlide1', 1, 0.5)
+			debug_log(
+				'select key=' .. tostring(entry.key)
+				.. ' cycle=' .. tostring(cycle_index) .. '/' .. tostring(#combinations)
+				.. ' inverse=' .. tostring(not not inverse)
+				.. ' cards=' .. describe_cards(chosen)
+			)
+
+			if inverse then
+				local in_hand = {}
+				for _, card in ipairs(chosen) do
+					in_hand[card] = true
+					end
+
+					local rest = {}
+					for _, card in ipairs(G.hand.cards) do
+						if not in_hand[card] then
+							rest[#rest + 1] = card
+							end
+							end
+
+							if #rest == 0 then return end
+								select_cards(order_cards(rest, false))
+								else
+									select_cards(chosen)
+									end
+
+									play_sound('cardSlide1', 1, 0.5)
 end
-
 --- Tops the selection up to the game's current limit with the most expendable cards
 --- that are not selected (see order_cards: debuffed first, then lowest rank). The
 --- limit is read from the CardArea, so jokers that raise or lower how many cards may
