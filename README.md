@@ -1,6 +1,6 @@
 # Quick Hand Selector (Balatro)
 
-**Test edits - Learning Copilot and working on some issues with the Straight & Straight Flush logic**
+**Test edits - Learning Copilot and working on some issues with the Straight & Straight Flush logic - Use with caution, or head upstream**
 
 Adds a draggable panel to the in-run HUD with buttons that select a hand or a
 combination directly. One button per poker hand your hand can currently make, one per
